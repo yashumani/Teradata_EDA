@@ -17,23 +17,35 @@ def teradata_connect(host, username, password):
         print(f"Failed to connect to Teradata: {e}")
         return None
 
+# Function to read SQL query from a text file
+def read_sql_query(file_path):
+    try:
+        with open(file_path, 'r') as file:
+            query = file.read()
+        print(f"Successfully read SQL query from {file_path}")
+        return query
+    except Exception as e:
+        print(f"Failed to read SQL query from file: {e}")
+        return None
+
 # Main logic
 def main():
-    host = "your_host_here"  # Replace with actual host
-    username = "your_username_here"  # Replace with actual username
-    password = "your_password_here"  # Replace with actual password
+    host = "tddp.tdc.vzwcorp.com"  # Replace with actual host
+    username = "UFINNTLBD1"  # Replace with actual username
+    password = "$1SI6Nkb"  # Replace with actual password
 
     # Establish connection
     conn = teradata_connect(host, username, password)
     if conn is None:
         return
 
-    # SQL Query
-    user_query = """
-    SELECT order_id, customer_id, product_id, order_date, quantity, total_amount
-    FROM sales_data
-    WHERE order_date >= '2021-01-01'
-    """  # Replace with your actual SQL query
+    # Path to the SQL query text file
+    sql_file_path = "your_query.sql"  # Replace with the actual path to your SQL file
+
+    # Read the SQL query from the text file
+    user_query = read_sql_query(sql_file_path)
+    if user_query is None:
+        return
 
     try:
         df = pd.read_sql(user_query, conn)
@@ -41,7 +53,7 @@ def main():
         print(df.head())
 
         # Select the date column
-        date_column = "order_date"  # Replace with your date column
+        date_column = "DATE"  # Replace with your date column
 
         # Filter data for the last 3 years based on the provided date column
         df[date_column] = pd.to_datetime(df[date_column])
