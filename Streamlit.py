@@ -10,7 +10,7 @@ def teradata_connect(host, username, password):
         # Specify the port number directly in the host string
         port = 1025  # Replace with the appropriate port number
         connection = teradatasql.connect(
-            host=f"{host},{port}",
+            host=host,
             user=username,
             password=password
         )
