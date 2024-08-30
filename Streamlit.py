@@ -59,37 +59,30 @@ if st.session_state['logged_in']:
     # User Input for Query
     st.header("Enter your SQL Query")
     st.session_state['user_query'] = st.text_area("SQL Query", value=st.session_state['user_query'], height=200)
-    
-    # Debugging: Show the current query stored in session state
-    st.write(f"Current SQL Query: {st.session_state['user_query']}")
 
     # Run Query to Fetch Columns
     if st.button("Fetch Columns"):
-        # Debugging: Verify if the query is captured correctly
-        st.write(f"Query before fetching columns: {st.session_state['user_query']}")
-
         if st.session_state['user_query'] and st.session_state['conn'] is not None:
             try:
                 df = pd.read_sql(st.session_state['user_query'], st.session_state['conn'])
                 st.session_state['columns'] = df.columns.tolist()
                 st.write(f"Columns in the query result: {st.session_state['columns']}")
-                
-                # Allow user to select the date column from the fetched columns
-                st.session_state['date_column'] = st.selectbox(
-                    "Select the Date Column for EDA",
-                    st.session_state['columns'],
-                    index=0 if 'date_column' not in st.session_state else st.session_state['columns'].index(st.session_state['date_column'])
-                )
-                
-                if st.session_state['date_column']:
+
+                # Display dropdown to select date column
+                if st.session_state['columns']:
+                    st.session_state['date_column'] = st.selectbox(
+                        "Select the Date Column for EDA",
+                        st.session_state['columns']
+                    )
                     st.write(f"Selected Date Column: {st.session_state['date_column']}")
+
             except Exception as e:
                 st.error(f"Error fetching columns: {e}")
         else:
             st.error("Please enter a SQL query to fetch columns.")
     
     # Run EDA
-    if st.button("Run EDA"):
+    if st.session_state['date_column'] and st.button("Run EDA"):
         if st.session_state['user_query'] and st.session_state['date_column'] and st.session_state['conn'] is not None:
             try:
                 df = pd.read_sql(st.session_state['user_query'], st.session_state['conn'])
