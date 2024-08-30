@@ -25,5 +25,5 @@ To get started with the app, you need to install the required Python packages. Y
 1. **Clone the repository**:
 
    ```bash
-   git clone https://github.com/yourusername/teradata-edw-eda-tool.git
+   git clone https://github.com/yashumani/Teradata_EDA.git
    cd teradata-edw-eda-tool
