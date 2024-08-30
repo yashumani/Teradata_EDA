@@ -1,0 +1,2 @@
+# Teradata_EDA
+ 
