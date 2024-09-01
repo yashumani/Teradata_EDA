@@ -3,3 +3,8 @@ teradatasql
 pandas
 sweetviz
 setuptools
+yfinance
+scikit-learn
+tensorflow
+ta
+numpy
