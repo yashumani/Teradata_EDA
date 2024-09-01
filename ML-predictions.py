@@ -169,13 +169,13 @@ if not data.empty:
     for col in display_data.select_dtypes(include=[np.number]).columns:
         display_data[col] = display_data[col].map('{:,.2f}'.format)
 
-    # Display prediction tables for each model
-    st.write("### Prediction Tables for Each Model")
+    # Display prediction tables for each model with price action metrics
+    st.write("### Prediction Tables for Each Model with Price Action Metrics")
     for model in ['LR', 'DT', 'RF', 'GB', 'DL']:
         st.write(f"#### Predictions for {model} Model")
-        metrics_table = display_data[[f'Predicted Close ({model})', f'Difference ({model})', f'Accuracy ({model})', 'Target']]
+        metrics_table = display_data[['Open', 'High', 'Low', 'Close', 'Volume', f'Predicted Close ({model})', f'Difference ({model})', f'Accuracy ({model})', 'Target']]
         
-
+        # Highlight different accuracy levels
         def highlight_accuracy(val):
             if val == 'High Overestimation':
                 color = 'red'
