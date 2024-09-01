@@ -59,6 +59,10 @@ if not data.empty:
     data['Target'] = data['Close'].shift(-1)
     data.dropna(inplace=True)
 
+    # Format the date column
+    data.index = data.index.strftime('%-d{S} %b, %Y').str.replace('1{S}', '1st').str.replace('2{S}', '2nd').str.replace('3{S}', '3rd').str.replace(r'\b([04-9]|\d{2,})\{S\}', r'\1th', regex=True)
+    data.index.name = 'Date'
+
     # Features and target
     X = data[['Price Change', 'High-Low', 'Volume', 'RSI', 'MACD', 'Bollinger High', 'Bollinger Low', 'SMA', 'EMA', 'EMA 50', 'EMA 100', 'EMA 200', 'Stochastic', 'ATR']]
     y = data['Target']
@@ -174,7 +178,7 @@ if not data.empty:
     for model in ['LR', 'DT', 'RF', 'GB', 'DL']:
         st.write(f"#### Predictions for {model} Model")
         metrics_table = display_data[['Open', 'High', 'Low', 'Close', 'Volume', f'Predicted Close ({model})', f'Difference ({model})', f'Accuracy ({model})', 'Target']]
-        
+
         # Highlight different accuracy levels
         def highlight_accuracy(val):
             if val == 'High Overestimation':
