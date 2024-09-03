@@ -12,7 +12,9 @@ from tensorflow.keras.optimizers import Adam
 from sklearn.metrics import mean_squared_error, r2_score
 import ta
 import numpy as np
-import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt  # Importing matplotlib.pyplot for plotting residuals
+import plotly.graph_objs as go
+from datetime import datetime, timedelta
 
 # Set page configuration to wide layout
 st.set_page_config(layout="wide")
@@ -128,22 +130,13 @@ if not data.empty:
     }
     data['Predicted Close (DL)'] = dl_model.predict(scaler.transform(X)).flatten()
 
-    # Cross-Validation Evaluation
-    def cross_val_evaluation(model, X, y):
-        scores = cross_val_score(model, X, y, cv=5, scoring='neg_mean_squared_error')
-        return np.mean(-scores), np.std(-scores)
+    # Sidebar for Model and Residual Plot Selection
+    st.sidebar.title("Navigation")
+    selected_model = st.sidebar.selectbox("Select Model to View Price Action", 
+                                          ["Linear Regression", "Decision Tree", "Random Forest", "Gradient Boosting", "Deep Learning"])
 
-    st.write("## Cross-Validation Performance")
-    for model_name, model in [('Linear Regression', lr_model), 
-                              ('Decision Tree', dt_model), 
-                              ('Random Forest', rf_model), 
-                              ('Gradient Boosting', gb_model)]:
-        mean_mse, std_mse = cross_val_evaluation(model, X_train_scaled, y_train)
-        st.write(f"{model_name}: Cross-Validated MSE: {mean_mse:.2f} ± {std_mse:.2f}")
-
-    # Sidebar for Residual Plots
-    st.sidebar.title("Residual Plots")
-    selected_model = st.sidebar.selectbox("Select Model to View Residual Plot", 
+    st.sidebar.title("Residual Analysis")
+    residual_model = st.sidebar.selectbox("Select Model for Residual Plot", 
                                           ["Linear Regression", "Decision Tree", "Random Forest", "Gradient Boosting", "Deep Learning"])
 
     def plot_residuals(y_true, y_pred, model_name):
@@ -186,15 +179,15 @@ if not data.empty:
         st.pyplot(plt)
 
     # Display selected residual plot
-    if selected_model == "Linear Regression":
+    if residual_model == "Linear Regression":
         plot_residuals(y_test, y_pred_lr, 'Linear Regression')
-    elif selected_model == "Decision Tree":
+    elif residual_model == "Decision Tree":
         plot_residuals(y_test, y_pred_dt, 'Decision Tree')
-    elif selected_model == "Random Forest":
+    elif residual_model == "Random Forest":
         plot_residuals(y_test, y_pred_rf, 'Random Forest')
-    elif selected_model == "Gradient Boosting":
+    elif residual_model == "Gradient Boosting":
         plot_residuals(y_test, y_pred_gb, 'Gradient Boosting')
-    elif selected_model == "Deep Learning":
+    elif residual_model == "Deep Learning":
         plot_residuals(y_test, y_pred_dl, 'Deep Learning')
 
     # Generate narrative summary
@@ -235,25 +228,75 @@ if not data.empty:
     
     # Sort data by date in descending order
     display_data = display_data.sort_index(ascending=False)
+
+    # Display a dropdown to select which model to visualize
+    st.write("### Visualize Predictions")
+    selected_model_to_display = st.selectbox("Select the model to display:", ["LR", "DT", "RF", "GB", "DL"])
+
+    st.write(f"#### Predictions for {selected_model_to_display} Model")
+    metrics_table = display_data[['Open', 'High', 'Low', 'Close', 'Volume', f'Predicted Close ({selected_model_to_display})', f'Difference ({selected_model_to_display})', f'Accuracy ({selected_model_to_display})', 'Target']]
     
-    for model in ['LR', 'DT', 'RF', 'GB', 'DL']:
-        st.write(f"#### Predictions for {model} Model")
-        metrics_table = display_data[['Open', 'High', 'Low', 'Close', 'Volume', f'Predicted Close ({model})', f'Difference ({model})', f'Accuracy ({model})', 'Target']]
-        
-        # Highlight different accuracy levels
-        def highlight_accuracy(val):
-            if val == 'High Overestimation':
-                color = 'red'
-            elif val == 'High Underestimation':
-                color = 'orange'
-            elif val == 'Accurate':
-                color = 'green'
-            else:
-                color = 'yellow'
-            return f'background-color: {color}'
-        
-        styled_table = metrics_table.style.applymap(highlight_accuracy, subset=[f'Accuracy ({model})'])
-        st.dataframe(styled_table, use_container_width=True)
+    # Highlight different accuracy levels
+    def highlight_accuracy(val):
+        if val == 'High Overestimation':
+            color = 'red'
+        elif val == 'High Underestimation':
+            color = 'orange'
+        elif val == 'Accurate':
+            color = 'green'
+        else:
+            color = 'yellow'
+        return f'background-color: {color}'
+    
+    styled_table = metrics_table.style.applymap(highlight_accuracy, subset=[f'Accuracy ({selected_model_to_display})'])
+    st.dataframe(styled_table, use_container_width=True)
+
+    # Add a candlestick chart for the last 7 days with a line for predicted prices
+    st.write(f"#### Projected Price Action for {selected_model_to_display} Model")
+    last_seven_days = display_data[-7:].index
+    last_seven_days_data = display_data.loc[last_seven_days]
+    
+    # Prepare predicted data for the next 4 days in hourly intervals
+    last_date = last_seven_days_data.index[-1]
+    future_dates = pd.date_range(start=last_date + pd.Timedelta(hours=1), periods=4 * 24, freq='H')
+    
+    future_predictions = pd.DataFrame({
+        'Date': future_dates,
+        'Predicted Close': np.nan,
+    })
+    future_predictions['Predicted Close'] = display_data[f'Predicted Close ({selected_model_to_display})'].iloc[-4:].values[0]
+    future_predictions.set_index('Date', inplace=True)
+
+    # Plot candlesticks for the last 7 days and line for the next 4 days
+    fig = go.Figure()
+
+    # Add candlestick trace
+    fig.add_trace(go.Candlestick(
+        x=last_seven_days_data.index,
+        open=last_seven_days_data['Open'],
+        high=last_seven_days_data['High'],
+        low=last_seven_days_data['Low'],
+        close=last_seven_days_data['Close'],
+        name='Candlestick'
+    ))
+
+    # Add line trace for future predictions
+    fig.add_trace(go.Scatter(
+        x=future_predictions.index,
+        y=future_predictions['Predicted Close'],
+        mode='lines',
+        name='Predicted Close',
+        line=dict(color='blue')
+    ))
+
+    fig.update_layout(
+        title=f"Price Action for {selected_model_to_display} Model",
+        xaxis_title="Date",
+        yaxis_title="Price",
+        xaxis_rangeslider_visible=False
+    )
+
+    st.plotly_chart(fig, use_container_width=True)
 
 else:
     st.error("No data available for the selected ticker.")
